@@ -1,13 +1,12 @@
 from config import *
 
 class Othello:
-  def __init__(self,board_state=None,rev=False):
+  def __init__(self,board_state=None,turn=BLACK):
     self.board=[[VACANT for _ in range(W)] for _ in range(H)]
     self.stone_count=dict()
     self.stone_count[BLACK]=0
     self.stone_count[WHITE]=0
-    self.turn=BLACK
-    self.rev=rev
+    self.turn=turn
 
     if board_state is not None:
       for i in range(H):
@@ -17,9 +16,6 @@ class Othello:
             self.stone_count[BLACK]+=1
           elif board_state[i][j]==WHITE:
             self.stone_count[WHITE]+=1
-      
-      if (self.stone_count[WHITE]+self.stone_count[BLACK])%2:
-        self.turn=WHITE
 
     else:
       self.board[3][3]=WHITE
@@ -28,9 +24,6 @@ class Othello:
       self.board[4][3]=BLACK
       self.stone_count[BLACK]=2
       self.stone_count[WHITE]=2  
-    
-    if self.rev:
-      self.turn=self.opponent()
   
   def opponent(self):
     return BLACK if self.turn==WHITE else WHITE
@@ -43,9 +36,9 @@ class Othello:
       for j in range(W):
         c='.'
         if self.board[i][j]==BLACK:
-          c='X'
-        elif self.board[i][j]==WHITE:
           c='O'
+        elif self.board[i][j]==WHITE:
+          c='X'
         elif self.legal(i,j):
           c='!'
         print(c,end=' ')
@@ -70,7 +63,10 @@ class Othello:
   def winner(self):
     if not self.finish():
       return VACANT
-    
+
+    self.stone_count[self.turn]=sum([self.board[i].count(self.turn) for i in range(H)])
+    self.stone_count[self.opponent()]=sum([self.board[i].count(self.opponent()) for i in range(H)])  
+  
     if self.stone_count[BLACK]>self.stone_count[WHITE]:
       return BLACK
     elif self.stone_count[BLACK]<self.stone_count[WHITE]:
@@ -121,9 +117,9 @@ class Othello:
     self.stone_count[self.turn]+=1
     while not (th==nh and tw==nw):
       self.board[th][tw]=player
-      self.stone_count[self.turn]+=1
-      self.stone_count[self.opponent()]-=1
       th+=dh;tw+=dw
+    self.stone_count[self.turn]=sum([self.board[i].count(self.turn) for i in range(H)])
+    self.stone_count[self.turn]=sum([self.board[i].count(self.opponent()) for i in range(H)])
     return
 
   def move_p(self,h,w):
@@ -141,20 +137,23 @@ class Othello:
       if self.between(h,w,nh,nw,dh,dw):
         self._flip(h,w,nh,nw,dh,dw)
 
-    self.turn=BLACK if player==WHITE else WHITE
+    self.turn=self.opponent()
 
     return True
 
   def move(self,h,w):
     if h==-1 and w==-1:
-      new_board=Othello(self.board,rev=self.rev^1)
+      if self.all_legal_hand():
+        return self
+      
+      new_board=Othello(self.board,turn=self.opponent())
       return new_board
     
     else:
       if not self.legal(h,w):
         return self
     
-      new_board=Othello(self.board,rev=self.rev)
+      new_board=Othello(self.board,turn=self.turn)
       new_board.move_p(h,w)
 
       return new_board
